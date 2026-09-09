@@ -48,10 +48,10 @@ function getTransporter(): nodemailer.Transporter {
 }
 
 export async function sendEmail(options: SendEmailOptions): Promise<void> {
-  let from = process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@cekstatus.id";
+  let from = process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@example.com";
 
   if (!from.includes("<")) {
-    from = `"CekStatus" <${from}>`;
+    from = `"Monorepo" <${from}>`;
   }
 
   const mailOptions: nodemailer.SendMailOptions = {
