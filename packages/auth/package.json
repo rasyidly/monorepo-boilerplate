@@ -1,0 +1,20 @@
+{
+	"name": "@repo/auth",
+	"module": "index.ts",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"auth:generate": "bun --env-file=../../.env run -- bun x auth@latest generate --config ./index.ts --output ./../db/zenstack/auth.zmodel -y"
+	},
+	"dependencies": {
+		"@repo/api": "workspace:*",
+		"@repo/db": "workspace:*",
+		"@repo/email": "workspace:*",
+		"@repo/logger": "workspace:*",
+		"@zenstackhq/better-auth": "^3.9.3",
+		"better-auth": "^1.7.3"
+	},
+	"devDependencies": {
+		"@types/bun": "^1.4.2"
+	}
+}

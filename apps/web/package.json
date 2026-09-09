@@ -1,0 +1,46 @@
+{
+  "name": "@repo/web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "eslint . --fix",
+    "typecheck": "nuxt typecheck"
+  },
+  "dependencies": {
+    "@iconify-json/logos": "^1.2.14",
+    "@iconify-json/lucide": "^1.2.130",
+    "@repo/db": "workspace:*",
+    "@repo/logger": "workspace:*",
+    "@nuxt/ui": "^4.11.1",
+    "@onmax/nuxt-better-auth": "0.1.2",
+    "@pinia/colada": "^1.4.4",
+    "@pinia/colada-nuxt": "1.0.2",
+    "@pinia/nuxt": "1.0.2",
+    "@tanstack/vue-table": "^9.2.4",
+    "@vue-flow/background": "^1.3.2",
+    "@vue-flow/core": "^1.48.2",
+    "@vueuse/core": "^14.4.0",
+    "@vueuse/nuxt": "^14.4.0",
+    "@vueuse/router": "^14.4.0",
+    "add": "^2.0.9",
+    "better-auth": "^1.7.3",
+    "nuxt": "^4.5.2",
+    "pinia": "^4.0.3",
+    "tailwindcss": "^4.3.3",
+    "vue-draggable-plus": "^0.6.1",
+    "vue-router": "^5.3.1",
+    "zenstack-pinia-colada": "^0.2.8"
+  },
+  "devDependencies": {
+    "@nuxt/eslint": "^1.17.0",
+    "eslint": "^10.10.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11",
+    "vue-tsc": "^3.3.11"
+  },
+  "packageManager": "bun@1.3.14"
+}

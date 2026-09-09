@@ -1,0 +1,21 @@
+{
+  "name": "@repo/api",
+  "version": "1.0.50",
+  "module": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "bun run --env-file ../../.env --watch src/index.ts"
+  },
+  "dependencies": {
+    "@elysiajs/cors": "^1.4.2",
+    "@repo/auth": "workspace:*",
+    "@repo/db": "workspace:*",
+    "@repo/logger": "workspace:*",
+    "@repo/storage": "workspace:*",
+    "@zenstackhq/server": "^3.9.3",
+    "elysia": "^1.4.30"
+  },
+  "devDependencies": {
+    "bun-types": "^1.4.2"
+  }
+}

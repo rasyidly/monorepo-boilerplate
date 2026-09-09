@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:18.4-alpine3.24
+    container_name: repo-postgres
+    restart: always
+    shm_size: 128mb
+    environment:
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./.pgdata:/var/lib/postgresql/18/docker
+
+  adminer:
+    image: adminer
+    container_name: repo-adminer
+    restart: always
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    ports:
+      - "8080:8080"
+
+  minio:
+    image: minio/minio:latest
+    container_name: repo-minio
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ./.minio-data:/data

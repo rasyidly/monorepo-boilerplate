@@ -1,0 +1,60 @@
+{
+  "format_on_save": "on",
+  "use_autoclose": true,
+  "use_auto_surround": true,
+  "file_types": {
+    "*.zmodel": ["zmodel-v3"],
+  },
+  "languages": {
+    "TypeScript": {
+      "formatter": ["language_server"],
+      "code_actions_on_format": { "source.fixAll.eslint": true },
+    },
+    "Vue.js": {
+      "code_actions_on_format": { "source.fixAll.eslint": true },
+    },
+  },
+  "lsp": {
+    "tailwindcss-language-server": {
+      "settings": {
+        "includeLanguages": {
+          "vue": "html",
+        },
+        "experimental": {
+          "classRegex": [
+            "class=\"([^\"]*)\"",
+            "class='([^']*)'",
+            ":class=\"([^\"]*)\"",
+            ":class='([^']*)'",
+            ":ui=\"([^\"]*)\"",
+            ":ui='([^']*)'",
+          ],
+        },
+      },
+    },
+  },
+  "context_servers": {
+    "nuxt": {
+      "url": "https://nuxt.com/mcp",
+    },
+    "codegraph": {
+      "command": "codegraph",
+      "args": ["serve", "--mcp"],
+    },
+    "nuxt-ui": {
+      "url": "https://ui.nuxt.com/mcp",
+    },
+    "better-auth": {
+      "url": "https://mcp.better-auth.com/mcp",
+    },
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://postgres:postgres@127.0.0.1:5432/postgres",
+      ],
+      "env": {},
+    },
+  },
+}

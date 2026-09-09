@@ -1,0 +1,1011 @@
+# TanStack Query
+
+## Overview
+
+[TanStack Query](https://tanstack.com/query) is a powerful data-fetching library for the web frontend, supporting multiple UI frameworks like React, Vue, and Svelte.
+
+> **Info**
+
+TanStack Query integration only works with the RPC style API. Currently supported frameworks are: react, vue, and svelte.
+
+This documentation assumes you have a solid understanding of TanStack Query concepts.
+
+ZenStack's TanStack Query integration helps you derive a set of fully typed query and mutation hooks from your data model. The derived hooks work with the [RPC style](../../api-handler/rpc.md) API and pretty much 1:1 mirror the ORM query APIs, allowing you to enjoy the same excellent data query DX from the frontend.
+
+The integration provides the following features
+
+- Query and mutation hooks like `useFindMany`, `useUpdate`, etc.
+- All hooks accept standard TanStack Query options, allowing you to customize their behavior.
+- Standard, infinite, and suspense queries.
+- Automatic query invalidation upon mutation.
+- Automatic optimistic updates (opt-in).
+
+## Framework Compatibility
+
+### React
+
+- `@tanstack/react-query`: v5+
+- `react` v18+
+
+### Vue
+
+- `@tanstack/vue-query`: v5+
+- `vue` v3+
+
+### Svelte
+
+- `@tanstack/svelte-query`: v6+
+- `svelte` v5.25.0+
+
+> **Preview Feature**
+
+Svelte support is in preview and may be subject to breaking changes in future releases.
+
+> **Warning**
+
+`@tanstack/svelte-query` v6 leverages Svelte 5's [runes](https://svelte.dev/docs/svelte/what-are-runes) reactivity system. ZenStack is not compatible with prior versions that use Svelte stores.
+
+### Angular
+
+Not supported yet (need to migrate implementation from ZenStack v2).
+
+### Solid
+
+Not supported yet.
+
+## Installation
+
+```bash
+npm install @zenstackhq/tanstack-query
+```
+
+## Context Provider
+
+You can configure the query hooks by setting up context. The following options are available on the context:
+
+- endpoint
+
+    The endpoint to use for the queries. Defaults to "/api/model".
+
+- fetch
+
+    A custom `fetch` function to use for the queries. Defaults to using built-in `fetch`.
+
+- logging
+
+    Logging configuration. Pass `true` to log with `console.log`. Pass a `(message) => void` function for custom logging.
+
+Example for using the context provider:
+
+**React**
+
+```tsx title='_app.tsx'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QuerySettingsProvider, type FetchFn } from '@zenstackhq/tanstack-query/react';
+
+// custom fetch function that adds a custom header
+const myFetch: FetchFn = (url, options) => {
+  options = options ?? {};
+  options.headers = {
+    ...options.headers,
+    'x-my-custom-header': 'hello world',
+  };
+  return fetch(url, options);
+};
+
+const queryClient = new QueryClient();
+
+function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <QuerySettingsProvider value={{ endpoint: '/api/model', fetch: myFetch }}>
+        <AppContent />
+      </QuerySettingsProvider>
+    </QueryClientProvider>
+  );
+}
+
+export default MyApp;
+```
+
+**Vue**
+
+```html title='App.vue'
+<script setup lang="ts">
+import { provideQuerySettingsContext, type FetchFn } from '@zenstackhq/tanstack-query/vue';
+
+const myFetch: FetchFn = (url, options) => {
+  options = options ?? {};
+  options.headers = {
+    ...options.headers,
+    'x-my-custom-header': 'hello world',
+  };
+  return fetch(url, options);
+};
+
+provideQuerySettingsContext({
+  endpoint: 'http://localhost:3000/api/model',
+  fetch: myFetch
+});
+</script>
+
+<template>
+    <!-- App Content -->
+</template>
+```
+
+**Svelte**
+
+```svelte title='+layout.svelte'
+<script lang="ts">
+  import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query';
+  import { setQuerySettingsContext, type FetchFn } from '@zenstackhq/tanstack-query/svelte';
+
+  // custom fetch function that adds a custom header
+  const myFetch: FetchFn = (url, options) => {
+    options = options ?? {};
+    options.headers = {
+      ...options.headers,
+      'x-my-custom-header': 'hello world',
+    };
+    return fetch(url, options);
+  };
+
+  setQuerySettingsContext({
+    endpoint: '/api/model',
+    fetch: myFetch,
+  });
+
+  const queryClient = new QueryClient();
+</script>
+
+<div>
+  <QueryClientProvider client={queryClient}>
+    <slot />
+  </QueryClientProvider>
+</div>
+```
+
+The provided configuration can be overridden at query time. See [Configuration Overrides](#configuration-overrides) for details.
+
+## Using the Query Hooks
+
+Call the `useClientQueries` hook to get a root object to access CRUD hooks for all models. From there, using the hooks is pretty much the same as using `ZenStackClient` in backend code.
+
+**React**
+
+```ts
+import { useClientQueries } from '@zenstackhq/tanstack-query/react';
+import { schema } from '~/zenstack/schema-lite.ts';
+
+const client = useClientQueries(schema);
+
+// `usersWithPosts` is typed `User & { posts: Post[] }`
+const { data: usersWithPosts } = client.user.useFindMany({
+  include: { posts: true },
+  orderBy: { createdAt: 'desc' },
+});
+
+const createPost = client.post.useCreate();
+
+function onCreate() {
+  createPost.mutate({ title: 'Some new post' });
+}
+```
+
+**Vue**
+
+> **Info**
+
+If you want the queries to be reactive, make sure to pass reactive objects as arguments when calling the hooks. See [TanStack Query documentation](https://tanstack.com/query/latest/docs/framework/vue/reactivity) for details.
+
+```ts title="app.vue"
+<script setup lang="ts">
+  import { useClientQueries } from '@zenstackhq/tanstack-query/vue';
+  import { schema } from '~/zenstack/schema-lite.ts';
+
+  const client = useClientQueries(schema);
+
+  // `usersWithPosts` is typed `Ref<User & { posts: Post[] }>`
+  const { data: usersWithPosts } = client.user.useFindMany({
+    include: { posts: true },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const createPost = client.post.useCreate();
+
+  function onCreate() {
+    createPost.mutate({ title: 'Some new post' });
+  }
+</script>
+```
+
+**Svelte**
+
+> **Info**
+
+Arguments to the query hooks must be wrapped in a function to make the result reactive. Please check this [TanStack Query documentation](https://tanstack.com/query/latest/docs/framework/svelte/migrate-from-v5-to-v6) if you are migrating from `@tanstack/svelte-query` v5 to v6.
+
+```ts title="App.svelte"
+<script lang="ts">
+  import { useClientQueries } from '@zenstackhq/tanstack-query/svelte';
+  import { schema } from '~/zenstack/schema-lite.ts';
+
+  const client = useClientQueries(schema);
+
+  // `usersWithPosts` is typed `Ref<User & { posts: Post[] }>`
+  const { data: usersWithPosts } = client.user.useFindMany(
+    () => ({
+      include: { posts: true },
+      orderBy: { createdAt: 'desc' }})
+  );
+</script>
+```
+
+The `useClientQueries` takes the schema as an argument, and it uses it for both type inference and runtime logic (e.g., automatic query invalidation). This may bring security concerns, because the schema object contains sensitive content like access policies. Using it in the frontend code will expose such information.
+
+To mitigate the risk, you can pass the additional `--lite` option when running `zen generate`. With that flag on, the CLI will generate an additional "lite" schema object in `schema-lite.ts` with all attributes removed. The lite schema contains all information needed by the query hooks. Check the [CLI Reference](../../../reference/cli.md#generate) for details.
+
+## Configuration Overrides
+
+The query configurations (as described in the [Context Provider](#context-provider) section) can be overridden in a hierarchical manner.
+
+When calling `useClientQueries`, you can pass the `endpoint`, `fetch`, etc. options to override the global configuration for all hooks returned from the call.
+
+```ts
+const client = useClientQueries(schema, { endpoint: '/custom-endpoint' });
+```
+
+Similarly, when calling an individual query or mutation hook, you can also pass the same options to override the configuration for that specific call.
+
+```ts
+const { data } = client.user.useFindMany(
+  { where: { active: true } },
+  { endpoint: '/another-endpoint' }
+);
+```
+
+## Optimistic Update
+
+### Automatic Optimistic Update
+
+Optimistic update is a technique that allows you to update the data cache immediately when a mutation executes while waiting for the server response. It helps achieve a more responsive UI. TanStack Query provides the [infrastructure for implementing it](https://tanstack.com/query/v5/docs/react/guides/optimistic-updates).
+
+The ZenStack-generated mutation hooks allow you to opt-in to "automatic optimistic update" by passing the `optimisticUpdate` option when calling the hook. When the mutation executes, it analyzes the current queries in the cache and tries to find the ones that need to be updated. When the mutation settles (either succeeded or failed), the queries are invalidated to trigger a re-fetch.
+
+Here's an example:
+
+```ts
+const { mutate: create } = useCreatePost({ optimisticUpdate: true });
+
+function onCreatePost() {
+  create({ ... })
+}
+```
+
+When `mutate` executes, if there are active queries like `client.post.useFindMany()`, the data of the mutation call will be optimistically inserted into the head of the query result.
+
+#### Details of the optimistic behavior
+
+- `create` mutation inserts item to the head of the query results of the corresponding `useFindMany` queries.
+- `update` mutation updates the item in the query results of `useFindXXX` queries and their nested reads by matching the item's ID.
+- `upsert` mutation first tries to update the item in the query results of `useFindXXX` queries and their nested reads by matching the item's ID. If the item is not found, it inserts the item to the head of the query results.
+- `delete` mutation removes the item from the query results of the corresponding `useFindMany` queries and sets `null` to `useFindUnique` and `useFindFirst` query results, by matching the item's ID.
+
+#### Limitations
+
+- The automatic optimistic update relies on ID matching. It only works for queries that select the ID field(s).
+- Non-entity-fetching queries like `count`, `aggregate`, and `groupBy` are not affected.
+- Infinite queries are not affected.
+- It doesn't respect filter conditions or access policies that potentially affect the queries under update. For example, for query `client.post.useFindMany({ where: { published: true }})`, when a non-published `Post` is created, it'll still be inserted into the query result.
+
+### Fine-Grained Optimistic Update
+
+Automatic optimistic update is convenient, but there might be cases where you want to explicitly control how the update happens. You can use the `optimisticUpdateProvider` callback to fully customize how each query cache entry should be optimistically updated. When the callback is set, it takes precedence over the automatic optimistic logic.
+
+```ts
+client.post.useCreate({
+  optimisticUpdateProvider: ({ queryModel, queryOperation, queryArgs, currentData, mutationArgs }) => {
+    return { kind: 'Update', data: ... /* computed result */ };
+  }
+});
+```
+
+The callback is invoked for each query cache entry and receives the following arguments in a property bag:
+
+- `queryModel`: The model of the query, e.g., `Post`.
+- `queryOperation`: The operation of the query, e.g., `findMany`, `count`.
+- `queryArgs`: The arguments of the query, e.g., `{ where: { published: true } }`.
+- `currentData`: The current cache data.
+- `mutationArgs`: The arguments of the mutation, e.g., `{ data: { title: 'My awesome post' } }`.
+
+It should return a result object with the following fields:
+
+- `kind`: The kind of the optimistic update.
+    - `Update`: update the cache using the computed data
+    - `Skip`: skip the update
+    - `ProceedDefault`: use the default automatic optimistic behavior.
+- `data`: The computed data to update the cache with. Only used when `kind` is `Update`.
+
+### Opt-out
+
+By default, all queries opt into automatic optimistic update. You can opt-out on a per-query basis by passing `false` to the `optimisticUpdate` option.
+
+```ts
+const { data } = client.post.useFindMany(
+  { where: { published: true } },
+  { optimisticUpdate: false }
+);
+```
+
+When a query opts out, it won't be updated by a mutation, even if the mutation is set to update optimistically.
+
+## Infinite Query
+
+The `useFindMany` hook has an "infinite" variant that helps you build pagination or infinitely scrolling UIs.
+
+**React**
+
+Here's a quick example of using infinite query to load a list of posts with infinite pagination. See [TanStack Query documentation](https://tanstack.com/query/v5/docs/react/guides/infinite-queries) for more details.
+
+```tsx title='/src/components/Posts.tsx'
+import { useClientQueries } from '@zenstackhq/tanstack-query/react';
+
+// post list component with infinite loading
+const Posts = () => {
+
+  const client = useClientQueries(schema);
+
+  const PAGE_SIZE = 10;
+
+  const fetchArgs = {
+    include: { author: true },
+    orderBy: { createdAt: 'desc' as const },
+    take: PAGE_SIZE,
+  };
+
+  const { data, fetchNextPage, hasNextPage } = client.post.useInfiniteFindMany(
+    fetchArgs,
+    {
+      getNextPageParam: (lastPage, pages) => {
+        if (lastPage.length < PAGE_SIZE) {
+          return undefined;
+        }
+        const fetched = pages.flatMap((item) => item).length;
+        return {
+          ...fetchArgs,
+          skip: fetched,
+        };
+      }
+    }
+  );
+
+  return (
+    <>
+      <ul>
+        {data?.pages.map((posts, i) => (
+          <React.Fragment key={i}>
+            {posts?.map((post) => (
+              <li key={post.id}>
+                {post.title} by {post.author.email}
+              </li>
+            ))}
+          </React.Fragment>
+        ))}
+      </ul>
+      {hasNextPage && (
+        <button onClick={() => fetchNextPage()}>
+          Load more
+        </button>
+      )}
+    </>
+  );
+};
+```
+
+**Vue**
+
+Here's a quick example of using infinite query to load a list of posts with infinite pagination. See [TanStack Query documentation](https://tanstack.com/query/v5/docs/vue/guides/infinite-queries) for more details.
+
+```html title='/src/components/Posts.vue'
+<script setup lang="ts">
+// post list component with infinite loading
+
+import { useClientQueries } from '@zenstackhq/tanstack-query/vue';
+
+const client = useClientQueries(schema);
+
+const PAGE_SIZE = 10;
+
+const fetchArgs = {
+  include: { author: true },
+  orderBy: { createdAt: 'desc' as const },
+  take: PAGE_SIZE,
+};
+
+const { data, hasNextPage, fetchNextPage } = client.post.useInfiniteFindMany(
+  fetchArgs,
+  {
+    getNextPageParam: (lastPage, pages) => {
+      if (lastPage.length < PAGE_SIZE) {
+        return undefined;
+      }
+      const fetched = pages.flatMap((item) => item).length;
+      return {
+        ...fetchArgs,
+        skip: fetched,
+      };
+    },
+  }
+);
+</script>
+
+<template>
+  <div>
+    <ul v-if="data">
+      <template v-for="(posts, i) in data.pages" :key="i">
+        <li v-for="post in posts" :key="post.id">
+          {{ post.title }} by {{ post.author.email }}
+        </li>
+      </template>
+    </ul>
+  </div>
+
+  <button v-if="hasNextPage" @click="() => fetchNextPage()">Load More</button>
+</template>
+
+```
+
+**Svelte**
+
+Here's a quick example of using infinite query to load a list of posts with infinite pagination. See [TanStack Query documentation](https://tanstack.com/query/v5/docs/framework/svelte/examples/load-more-infinite-scroll) for more details.
+
+```svelte title='/src/components/Posts.svelte'
+<script lang="ts">
+  // post list component with infinite loading
+
+  import { useClientQueries } from '@zenstackhq/tanstack-query/svelte';
+
+  const client = useClientQueries(schema);
+
+  const PAGE_SIZE = 10;
+
+  const fetchArgs = {
+    include: { author: true },
+    orderBy: { createdAt: 'desc' as const },
+    take: PAGE_SIZE,
+  };
+
+  const query = client.post.useInfiniteFindMany(
+    () => fetchArgs,
+    () => ({
+      getNextPageParam: (lastPage, pages) => {
+        if (lastPage.length < PAGE_SIZE) {
+          return undefined;
+        }
+        const fetched = pages.flatMap((item) => item).length;
+        return {
+          ...fetchArgs,
+          skip: fetched,
+        };
+      }})
+    );
+</script>
+
+<div>
+  <ul>
+    <div>
+      {#if query.data}
+        {#each query.data.pages as posts, i (i)}
+          {#each posts as post (post.id)}
+            <li>{post.title} by {post.author.email}</li>
+          {/each}
+        {/each}
+      {/if}
+    </div>
+  </ul>
+  {#if query.hasNextPage}
+    <button on:click={() => query.fetchNextPage()}>
+      Load more
+    </button>
+  {/if}
+</div>
+```
+
+## Custom Procedures
+
+[Custom procedures](../../../modeling/custom-proc.md) are grouped under the `$procs` property on the client returned by `useClientQueries`. Query procedures are mapped to query hooks, while mutation procedures are mapped to mutation hooks.
+
+There's no automatic query invalidation or optimistic update support for custom procedures, since their semantics are unknown to the system. You need to implement such behavior manually as needed.
+
+## Advanced Topics
+
+### Query Invalidation
+
+The mutation hooks generated by ZenStack automatically invalidates the queries that are potentially affected by the changes. For example, if you create a `Post`, the `client.post.useFindMany()` query will be automatically invalidated when the mutation succeeds. Invalidation causes cache to be purged and fresh data to be refetched.
+
+The automatic invalidation takes care of nested read, write, and delete cascading.
+
+**1. Nested Read**
+
+Nested reads are also subject to automatic invalidation. For example, if you create a `Post`, the query made by
+
+```ts
+client.user.useFindUnique({ where: { id: userId }, include: { posts: true } });
+```
+
+will be invalidated.
+
+**2. Nested Write**
+
+Similarly, nested writes also trigger automatic invalidation. For example, if you create a `Post` in a nested update to `User` like:
+
+```ts
+updateUser.mutate({ where: { id: userId }, posts: { create: { title: 'post1' } } });
+```
+
+The mutation will cause queries like ```client.post.useFindMany()``` to be invalidated.
+
+**3. Delete Cascade**
+
+In ZModel, relations can be configured to cascade delete, e.g.:
+
+```zmodel
+model User {
+    ...
+    posts Post[]
+}
+
+model Post {
+    ...
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId Int
+}
+```
+
+When a `User` is deleted, the `Post` entities it owns will be deleted automatically. The generated hooks takes cascade delete into account. For example, if you delete a `User`, `Post` model will be considered as affected and queries like ```client.post.useFindMany()``` will be invalidated.
+
+> **Info**
+
+The automatic invalidation is enabled by default, and you can use the `invalidateQueries` option to opt-out and handle revalidation by yourself.
+
+```ts
+useCreatePost({ invalidateQueries: false });
+```
+
+### Query Key
+
+Query keys serve as unique identifiers for organizing the query cache. The generated hooks use the following query key scheme:
+
+```ts
+['zenstack', model, operation, args, flags]
+```
+
+For example, the query key for
+
+```ts
+useFindUniqueUser({ where: { id: '1' } })
+```
+
+will be:
+
+```ts
+['zenstack', 'User', 'findUnique', { where: { id: '1' } }, { infinite: false }]
+```
+
+You can use the generated `getQueryKey` function to compute it.
+
+The query hooks also return the query key as part of the result object.
+
+```ts
+const { data, queryKey } = useFindUniqueUser({ where: { id: '1' } });
+```
+
+### Query Cancellation
+
+You can use TanStack Query's [`queryClient.cancelQueries`](https://tanstack.com/query/latest/docs/reference/QueryClient#queryclientcancelqueries) API to cancel a query. The easiest way to do this is to use the `queryKey` returned by the query hook.
+
+```ts
+const queryClient = useQueryClient();
+const { queryKey } = useFindUniqueUser({ where: { id: '1' } });
+
+function onCancel() {
+  queryClient.cancelQueries({ queryKey, exact: true });
+}
+```
+
+When a cancellation occurs, the query state is reset and the ongoing `fetch` call to the CRUD API is aborted.
+
+### Json Null Values
+
+> **Available since 3.7.0**
+
+When working with JSON fields, care needs to be taken to distinguish between two types of nulls:
+
+- Column value not set (database-level NULL)
+- JSON `null` value
+
+The hooks package exports similar `DbNull`, `JsonNull`, and `AnyNull` values as the ORM (see [Json Null Values](../../../orm/api/json-null.md) in the ORM reference for the underlying semantics), so you can filter and write JSON fields from the frontend with the same precision.
+
+When creating or updating records, use the following values (instead of JavaScript `null`) for different intentions:
+
+- `DbNull` - sets the column value to database NULL
+- `JsonNull` - sets the column value to JSON `null`
+
+When filtering with JSON fields, use:
+
+- `DbNull` - matches database NULL
+- `JsonNull` - matches JSON `null`
+- `AnyNull` - matches either database NULL or JSON `null`
+
+**React**
+
+```ts
+import { DbNull, JsonNull, AnyNull } from '@zenstackhq/tanstack-query/react';
+
+// sets jsonField to database NULL, only valid if `jsonField` is optional
+client.foo.useCreate().mutate({ data: { jsonField: DbNull } });
+
+// sets jsonField to JSON null
+client.foo.useCreate().mutate({ data: { jsonField: JsonNull } });
+
+// find records where jsonField is either database NULL or JSON null
+client.foo.useFindMany({ where: { jsonField: AnyNull } });
+```
+
+**Vue**
+
+```ts
+import { DbNull, JsonNull, AnyNull } from '@zenstackhq/tanstack-query/vue';
+
+// sets jsonField to database NULL, only valid if `jsonField` is optional
+client.foo.useCreate().mutate({ data: { jsonField: DbNull } });
+
+// sets jsonField to JSON null
+client.foo.useCreate().mutate({ data: { jsonField: JsonNull } });
+
+// find records where jsonField is either database NULL or JSON null
+client.foo.useFindMany({ where: { jsonField: AnyNull } });
+```
+
+**Svelte**
+
+```ts
+import { DbNull, JsonNull, AnyNull } from '@zenstackhq/tanstack-query/svelte';
+
+// sets jsonField to database NULL, only valid if `jsonField` is optional
+client.foo.useCreate().mutate({ data: { jsonField: DbNull } });
+
+// sets jsonField to JSON null
+client.foo.useCreate().mutate({ data: { jsonField: JsonNull } });
+
+// find records where jsonField is either database NULL or JSON null
+client.foo.useFindMany(() => ({ where: { jsonField: AnyNull } }));
+```
+
+The query results will return JavaScript `null` for both database NULL and JSON `null` values.
+
+### Transaction
+
+> **Available since 3.7.0**
+
+The `$transaction.useSequential` hook lets you execute multiple queries andmutations in a single transaction from the frontend, mirroring the [sequential transaction](../../../orm/api/transaction.md#sequential-transaction) overload on the ORM. All operations are sent to the server in one request and executed sequentially in the order they are provided. If any operation fails, the whole transaction is rolled back.
+
+The operations are independent of each other — there's no way to access the result of a previous operation and use it to influence later ones. If you need that, perform the work inside a server-side procedure or API route that uses the ORM's interactive transaction.
+
+> **Info**
+
+Only sequential transactions are supported on the client. Interactive transactions are intentionally not exposed via hooks, since holding a database transaction open across multiple network round-trips would be very harmful to server scalability.
+
+Each operation is described by an object with `model` (PascalCase model name), `op` (operation name such as `create`, `findMany`, `update`, etc.), and `args` (the same shape as the corresponding ORM call). `args` can be omitted for operations whose args are entirely optional (e.g., `findMany`, `count`, `exists`, `deleteMany`).
+
+**React**
+
+```ts
+import { useClientQueries } from '@zenstackhq/tanstack-query/react';
+
+const client = useClientQueries(schema);
+const tx = client.$transaction.useSequential();
+
+function onSubmit() {
+  tx.mutate([
+    { model: 'User', op: 'create', args: { data: { email: 'foo@bar.com' } } },
+    { model: 'Post', op: 'create', args: { data: { title: 'Hello' } } },
+  ]);
+}
+```
+
+**Vue**
+
+```ts
+import { useClientQueries } from '@zenstackhq/tanstack-query/vue';
+
+const client = useClientQueries(schema);
+const tx = client.$transaction.useSequential();
+
+function onSubmit() {
+  tx.mutate([
+    { model: 'User', op: 'create', args: { data: { email: 'foo@bar.com' } } },
+    { model: 'Post', op: 'create', args: { data: { title: 'Hello' } } },
+  ]);
+}
+```
+
+**Svelte**
+
+```ts
+import { useClientQueries } from '@zenstackhq/tanstack-query/svelte';
+
+const client = useClientQueries(schema);
+const tx = client.$transaction.useSequential();
+
+function onSubmit() {
+  tx.mutate([
+    { model: 'User', op: 'create', args: { data: { email: 'foo@bar.com' } } },
+    { model: 'Post', op: 'create', args: { data: { title: 'Hello' } } },
+  ]);
+}
+```
+
+The mutation result is a tuple, with each element's type inferred from its `model` and `op`:
+
+```ts
+const results = await tx.mutateAsync([
+  { model: 'User', op: 'create', args: { data: { email: 'a@b.com' } } },
+  { model: 'User', op: 'findMany' },
+  { model: 'User', op: 'count' },
+]);
+
+results[0].email;   // User
+results[1][0]?.id;  // User[]
+results[2];         // number
+```
+
+Queries affected by the operations in the transaction are automatically invalidated when the mutation settles. You can opt out by passing `invalidateQueries: false`:
+
+```ts
+const tx = client.$transaction.useSequential({ invalidateQueries: false });
+```
+
+### Respecting ORM Client Customization
+
+By default, calling `useClientQueries(schema)` gives you hooks for all models and all CRUD operations, with result types matching the schema. However, if your server-side ORM client is customized — with [slicing](../../../orm/advanced/slicing.md), [field omission](../../../orm/api/omit.md), or [plugin-contributed result fields](../../../orm/plugins/extending-orm-client.md#adding-fields-to-query-results) — the hooks' types won't reflect those customizations.
+
+To keep the hooks in sync with your ORM client, pass the **client type** as a generic parameter to `useClientQueries`:
+
+```ts
+import { useClientQueries } from '@zenstackhq/tanstack-query/react';
+import { schema } from '~/zenstack/schema-lite';
+
+// Import the ORM client type from your server code (type-only import)
+import type { DbType } from '~/server/db';
+
+// Pass the client type as a generic parameter
+const client = useClientQueries<DbType>(schema);
+```
+
+Where `DbType` is the type of your customized ORM client exported from your server module:
+
+```ts title="server/db.ts"
+import { ZenStackClient } from '@zenstackhq/orm';
+import { schema, type Schema } from '~/zenstack/schema';
+
+const db = new ZenStackClient<Schema>(schema, { ... });
+
+// Export the type for use in frontend hooks
+export type DbType = typeof db;
+```
+
+This ensures that the hooks' input types, available operations, and result types all match what the server-side ORM client actually provides.
+
+#### Slicing
+
+If your ORM client is configured with [slicing](../../../orm/advanced/slicing.md), the hooks will only expose the included models and operations.
+
+```ts title="server/db.ts"
+const db = new ZenStackClient<Schema>(schema, {
+  ...
+  slicing: {
+    includedModels: ['User', 'Post'],
+    models: {
+      post: {
+        excludedOperations: ['deleteMany'],
+      },
+    },
+  },
+});
+
+export type DbType = typeof db;
+```
+
+```ts title="frontend component"
+const client = useClientQueries<DbType>(schema);
+
+// ✅ Only 'user' and 'post' are available
+client.user.useFindMany();
+client.post.useFindMany();
+
+// ❌ TypeScript error: 'comment' doesn't exist (excluded by slicing)
+client.comment.useFindMany();
+
+// ❌ TypeScript error: 'useDeleteMany' doesn't exist on post (excluded operation)
+client.post.useDeleteMany();
+```
+
+#### Field Omission
+
+If your ORM client has [client-level field omission](../../../orm/api/omit.md) configured, the hooks' result types will reflect the omitted fields.
+
+```ts title="server/db.ts"
+const db = new ZenStackClient<Schema>(schema, {
+  ...
+  omit: {
+    User: { password: true },
+  },
+});
+
+export type DbType = typeof db;
+```
+
+```ts title="frontend component"
+const client = useClientQueries<DbType>(schema);
+
+const { data: user } = client.user.useFindFirst();
+
+// ✅ `user` is typed without the `password` field
+console.log(user?.email);
+
+// ❌ TypeScript error: `password` is not in the result type
+console.log(user?.password);
+```
+
+#### Plugin-Contributed Result Fields
+
+If your ORM client uses plugins that [add computed fields to query results](../../../orm/plugins/extending-orm-client.md#adding-fields-to-query-results), the hooks' result types will include those fields.
+
+```ts title="server/db.ts"
+const fullNamePlugin = definePlugin(schema, {
+  id: 'full-name',
+  result: {
+    user: {
+      fullName: {
+        needs: { firstName: true, lastName: true },
+        compute: (user) => `${user.firstName} ${user.lastName}`,
+      },
+    },
+  },
+});
+
+const db = new ZenStackClient<Schema>(schema, { ... }).$use(fullNamePlugin);
+
+export type DbType = typeof db;
+```
+
+```ts title="frontend component"
+const client = useClientQueries<DbType>(schema);
+
+const { data: user } = client.user.useFindFirst();
+
+// ✅ `fullName` is included in the result type
+console.log(user?.fullName);
+```
+
+> **Info**
+
+Since the generic parameter is purely for type inference, the actual runtime behavior (slicing enforcement, field omission, computed fields) happens on the server side. The generic parameter simply ensures your frontend code's types stay aligned with the server-side ORM configuration.
+
+## Samples
+
+### Interactive Demo
+
+The following live demo shows how to use the query hooks in a React SPA.
+
+**`src/App.tsx`**
+
+```tsx
+import { useClientQueries } from '@zenstackhq/tanstack-query/react';
+import { LoremIpsum } from 'lorem-ipsum';
+import { schema } from './zenstack/schema-lite';
+
+const lorem = new LoremIpsum({ wordsPerSentence: { min: 3, max: 5 } });
+
+function App() {
+    const clientQueries = useClientQueries(schema);
+    const { data: users } = clientQueries.user.useFindMany();
+    const { data: posts } = clientQueries.post.useFindMany({
+        orderBy: { createdAt: 'desc' },
+        include: { author: true },
+    });
+    const createPost = clientQueries.post.useCreate();
+    const deletePost = clientQueries.post.useDelete();
+
+    const onCreatePost = () => {
+        if (!users) {
+            return;
+        }
+
+        // random title
+        const title = lorem.generateWords();
+
+        // random user as author
+        const forUser = users[Math.floor(Math.random() * users.length)];
+
+        createPost.mutate({
+            data: {
+                title,
+                authorId: forUser.id,
+            },
+        });
+    };
+
+    const onDeletePost = (postId: string) => {
+        deletePost.mutate({
+            where: { id: postId },
+        });
+    };
+
+    return (
+        <main>
+            <h1>My Awesome Blog</h1>
+
+            <button
+                onClick={onCreatePost}
+                className="btn"
+            >
+                New Post
+            </button>
+
+            <div>
+                <div>Current users</div>
+                <div className="users">
+                    {users?.map((user) => (
+                        <div
+                            key={user.id}
+                            className="user"
+                        >
+                            {user.email}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="posts">
+                {posts?.map((post) => (
+                    <div key={post.id}>
+                        <div className="post">
+                            <div className="flex flex-col text-left">
+                                <h2>{post.title}</h2>
+                                <p className="author">by {post.author.name}</p>
+                            </div>
+                            <button
+                                className="btn-link"
+                                onClick={() =>
+                                    onDeletePost(post.id)
+                                }
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </main>
+    );
+}
+
+export default App;
+```
+
+### Full-Stack Samples
+
+#### Next.js
+
+[https://github.com/zenstackhq/zenstack/tree/main/samples/next.js](https://github.com/zenstackhq/zenstack/tree/main/samples/next.js)
+
+#### Nuxt
+
+[https://github.com/zenstackhq/zenstack/tree/main/samples/nuxt](https://github.com/zenstackhq/zenstack/tree/main/samples/nuxt)
+
+#### SvelteKit
+
+[https://github.com/zenstackhq/zenstack/tree/main/samples/sveltekit](https://github.com/zenstackhq/zenstack/tree/main/samples/sveltekit)

@@ -1,0 +1,27 @@
+{
+  "name": "repo",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "apps/**",
+    "packages/**"
+  ],
+  "scripts": {
+    "dev": "bun run --filter @repo/api --filter @repo/web dev",
+    "dev:web": "bun run --filter @repo/web dev",
+    "dev:api": "bun run --filter @repo/api dev",
+    "db:push": "bun run --filter @repo/db db:push",
+    "db:generate": "bun run --filter @repo/db db:generate",
+    "auth:generate": "bun run --filter @repo/auth auth:generate"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2"
+  },
+  "peerDependencies": {
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "ulid": "^3.0.2",
+    "zod": "^4.5.4"
+  }
+}

@@ -1,0 +1,29 @@
+{
+	"name": "@repo/db",
+	"module": "index.ts",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"db:push": "bun --env-file=../../.env zen db push",
+		"db:generate": "bun --env-file=../../.env zen generate"
+	},
+	"dependencies": {
+		"@repo/auth": "workspace:*",
+		"@repo/logger": "workspace:*",
+		"@zenstackhq/orm": "^3.9.3",
+		"@zenstackhq/plugin-policy": "^3.9.3",
+		"@zenstackhq/schema": "^3.9.3",
+		"@zenstackhq/zod": "^3.9.3",
+		"better-auth": "^1.7.3",
+		"pg": "^8.23.0"
+	},
+	"devDependencies": {
+		"@types/bun": "^1.4.2",
+		"@types/pg": "^8.23.1",
+		"@zenstackhq/cli": "^3.9.3",
+		"tsx": "^4.23.13"
+	},
+	"peerDependencies": {
+		"typescript": "^7.0.2"
+	}
+}
