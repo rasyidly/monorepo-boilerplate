@@ -3,6 +3,7 @@ export default defineNuxtConfig({
   modules: [
     '@nuxt/eslint',
     '@nuxt/ui',
+    '@comark/nuxt',
     '@vueuse/nuxt',
     '@onmax/nuxt-better-auth',
     '@pinia/nuxt',

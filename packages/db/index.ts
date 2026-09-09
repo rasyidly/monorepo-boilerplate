@@ -12,7 +12,7 @@ export type * from '@zenstackhq/orm';
 
 export const schema = _schema;
 
-const pool = new Pool({
+export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 

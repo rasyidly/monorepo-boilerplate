@@ -147,6 +147,21 @@ export default defineAppConfig({
       defaultVariants: {
         variant: 'naked'
       }
+    },
+    prose: {
+      h1: { slots: { base: 'text-2xl font-bold mb-4 mt-0' } },
+      h2: { slots: { base: 'text-xl font-bold mt-6 mb-3' } },
+      h3: { slots: { base: 'text-lg font-bold mt-5 mb-2' } },
+      h4: { slots: { base: 'text-base font-bold mt-4 mb-2' } },
+      p: { base: 'text-sm leading-6 my-3' },
+      li: { base: 'text-sm my-1 leading-6' },
+      ul: { base: 'text-sm my-3' },
+      ol: { base: 'text-sm my-3' },
+      code: { base: 'text-xs px-1 py-0.5' },
+      pre: { slots: { base: 'text-xs/5 px-3 py-2' } },
+      table: { slots: { base: 'text-sm' } },
+      td: { base: 'text-xs py-2 px-3' },
+      th: { base: 'text-xs py-2 px-3' }
     }
   }
 })

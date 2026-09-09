@@ -7,6 +7,7 @@ import { db, zenstack, schema } from '@repo/db';
 import { LogModule } from '@repo/db/enums';
 import { logger, readLogs } from '@repo/logger';
 import * as storage from '@repo/storage';
+import { chat } from './chat';
 
 const AuthService = new Elysia({ name: "better-auth" })
   .mount(auth.handler);
@@ -154,6 +155,7 @@ const app = new Elysia()
         auth: true,
       })
   )
+  .use(chat)
   .listen(8000)
 
 console.log(
