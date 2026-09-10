@@ -8,24 +8,27 @@ plugin policy {
 }
 
 model User {
-    id               String       @id
-    name             String
-    email            String       @unique
-    emailVerified    Boolean      @default(false)
-    image            String?
-    createdAt        DateTime     @default(now())
-    updatedAt        DateTime     @default(now()) @updatedAt
-    twoFactorEnabled Boolean?     @default(false)
-    sessions         Session[]
-    accounts         Account[]
-    members          Member[]
-    invitations      Invitation[]
-    twoFactors       TwoFactor[]
-    posts            Post[]
-    role             String?
-    banned           Boolean?     @default(false)
-    banReason        String?
-    banExpires       DateTime?
+    id                  String       @id
+    name                String
+    email               String       @unique
+    emailVerified       Boolean      @default(false)
+    image               String?
+    createdAt           DateTime     @default(now())
+    updatedAt           DateTime     @default(now()) @updatedAt
+    phoneNumber         String?      @unique
+    phoneNumberVerified Boolean?
+    role                String?
+    banned              Boolean?     @default(false)
+    banReason           String?
+    banExpires          DateTime?
+    twoFactorEnabled    Boolean?     @default(false)
+    sessions            Session[]
+    accounts            Account[]
+    members             Member[]
+    invitations         Invitation[]
+    twoFactors          TwoFactor[]
+    posts               Post[]
+    notifications       Notification[]
 
     @@allow('read', auth() != null)
 
@@ -42,8 +45,8 @@ model Session {
     userAgent            String?
     userId               String
     user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-    activeOrganizationId String?
     impersonatedBy       String?
+    activeOrganizationId String?
 
     @@map('session')
 }
@@ -151,6 +154,12 @@ enum PostStatus {
     ARCHIVED
 }
 
+enum NotificationChannel {
+    WEB
+    EMAIL
+    WHATSAPP
+}
+
 model Post {
     id             String        @id @default(ulid())
     title          String
@@ -171,4 +180,25 @@ model Post {
     @@index([authorId])
     @@index([publishedAt])
     @@map('post')
+}
+
+model Notification {
+    id        String                @id @default(ulid())
+    user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId    String
+    title     String?
+    body      String
+    channels  NotificationChannel[]
+    readAt    DateTime?
+    sentAt    DateTime?             @default(now())
+    url       String?
+    color     String?
+    icon      String?
+    createdAt DateTime              @default(now())
+
+    @@allow('read', auth() != null && auth().id == userId)
+    @@allow('update', auth() != null && auth().id == userId)
+
+    @@index([userId, createdAt])
+    @@map('notifications')
 }

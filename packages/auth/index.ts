@@ -1,6 +1,6 @@
 import { zenstackAdapter } from '@zenstackhq/better-auth';
 import { betterAuth } from "better-auth";
-import { openAPI, organization, twoFactor, admin as adminPlugin } from 'better-auth/plugins'
+import { openAPI, organization, twoFactor, phoneNumber, admin as adminPlugin } from 'better-auth/plugins'
 import { sendEmail } from '@repo/email';
 import { logger } from '@repo/logger';
 
@@ -60,6 +60,7 @@ export const auth = betterAuth({
     }
   },
   plugins: [
+    phoneNumber(),
     openAPI(),
     adminPlugin(),
     organization({

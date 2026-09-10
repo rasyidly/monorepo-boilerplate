@@ -1,10 +1,19 @@
 <script setup lang="ts">
+import { provideQuerySettingsContext } from 'zenstack-pinia-colada'
+
+const runtimeConfig = useRuntimeConfig()
+
 const title = 'Production-Ready Modern Monorepo Boilerplate'
 const description = 'A pre-configured Turborepo template. Features Nuxt.js, ZenStack, and Shared UI packages. Includes full Tailwind CSS integration. Ships with automated ESLint, Prettier, and GitHub Actions.'
 
 const colorMode = useColorMode()
 
 const color = computed(() => colorMode.value === 'dark' ? '#1b1718' : 'white')
+
+provideQuerySettingsContext({
+  endpoint: `${runtimeConfig.public.apiUrl}/model`,
+  logging: true
+})
 
 useHead({
   titleTemplate: chunk => chunk ? `${chunk} - ${title}` : title,

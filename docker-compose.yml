@@ -10,6 +10,11 @@ services:
       - "5432:5432"
     volumes:
       - ./.pgdata:/var/lib/postgresql/18/docker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   adminer:
     image: adminer
@@ -33,3 +38,20 @@ services:
       - "9001:9001"
     volumes:
       - ./.minio-data:/data
+
+  tasks:
+    build:
+      context: .
+      dockerfile: apps/tasks/Dockerfile
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://postgres:${DATABASE_PASSWORD:-postgres}@postgres:5432/postgres
+      S3_ENDPOINT: http://minio:9000
+    container_name: repo-tasks
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    restart: unless-stopped

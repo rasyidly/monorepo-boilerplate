@@ -9,6 +9,7 @@ import type { SchemaType } from '@repo/db/zenstack/schema'
 const { client } = useDbClient()
 const toast = useToast()
 const authClient = useAuthClient()
+const { public: { apiUrl } } = useRuntimeConfig()
 
 type Post = ModelResult<SchemaType, 'Post', { include: { author: true } }>
 type PostArgs = FindManyArgs<SchemaType, 'Post'>
@@ -25,6 +26,28 @@ const columnPinning = ref({ left: ['select'], right: [] })
 
 const activeMemberRole = authClient?.useActiveMemberRole()
 const isOwner = computed(() => activeMemberRole?.value?.data?.role === 'owner')
+
+const activeOrganization = authClient?.useActiveOrganization()
+const exporting = ref(false)
+
+async function exportPosts() {
+  exporting.value = true
+  try {
+    await $fetch('/tasks/posts/export', {
+      baseURL: apiUrl,
+      method: 'POST',
+      credentials: 'include',
+      body: { organizationId: activeOrganization?.value?.data?.id }
+    })
+    toast.add({
+      description: 'Export started. You\'ll be notified when it\'s done.'
+    })
+  } catch (error) {
+    handleError(error)
+  } finally {
+    exporting.value = false
+  }
+}
 
 const { data: rows, asyncStatus, refresh } = client.post.useFindMany(() => ({
   include: { author: true },
@@ -190,6 +213,19 @@ useHead({ title: 'Posts' })
               :loading="asyncStatus === 'loading'"
               @click="refresh()"
             />
+            <UButton
+              icon="i-lucide-file-down"
+              label="Export"
+              variant="ghost"
+              :loading="exporting"
+              @click="exportPosts"
+            />
+            <PostCreateFormOverlay>
+              <UButton
+                label="New"
+                icon="i-lucide-plus"
+              />
+            </PostCreateFormOverlay>
           </template>
         </UDashboardNavbar>
         <UDashboardToolbar>

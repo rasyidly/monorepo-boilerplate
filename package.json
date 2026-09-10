@@ -10,6 +10,7 @@
     "dev": "bun run --filter @repo/api --filter @repo/web dev",
     "dev:web": "bun run --filter @repo/web dev",
     "dev:api": "bun run --filter @repo/api dev",
+    "dev:tasks": "bun run --filter @repo/tasks dev",
     "db:push": "bun run --filter @repo/db db:push",
     "db:generate": "bun run --filter @repo/db db:generate",
     "auth:generate": "bun run --filter @repo/auth auth:generate"

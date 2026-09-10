@@ -8,6 +8,7 @@ import { LogModule } from '@repo/db/enums';
 import { logger, readLogs } from '@repo/logger';
 import * as storage from '@repo/storage';
 import { chat } from './chat';
+import { enqueueTask, stopTasks } from "./lib/tasks";
 
 const AuthService = new Elysia({ name: "better-auth" })
   .mount(auth.handler);
@@ -155,9 +156,38 @@ const app = new Elysia()
         auth: true,
       })
   )
+  .group('/tasks', (app) =>
+    app
+      .post('/posts/export', ({ body, user }) => enqueueTask('post.export', {
+        userId: user.id,
+        organizationId: body.organizationId,
+      }), {
+        body: t.Object({
+          organizationId: t.Optional(t.String()),
+        }),
+        auth: true,
+      })
+  )
   .use(chat)
   .listen(8000)
 
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
 );
+
+async function shutdown(signal: string) {
+  console.log(`Received ${signal}, shutting down...`);
+
+  await app.stop();
+  await stopTasks();
+
+  process.exit(0);
+}
+
+process.on("SIGINT", () => {
+  shutdown("SIGINT");
+});
+
+process.on("SIGTERM", () => {
+  shutdown("SIGTERM");
+});

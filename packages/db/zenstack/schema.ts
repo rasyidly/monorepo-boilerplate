@@ -54,6 +54,40 @@ export class SchemaType implements SchemaDef {
                     attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@updatedAt" }] as readonly AttributeApplication[],
                     default: ExpressionUtils.call("now") as FieldDefault
                 },
+                phoneNumber: {
+                    name: "phoneNumber",
+                    type: "String",
+                    unique: true,
+                    optional: true,
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
+                },
+                phoneNumberVerified: {
+                    name: "phoneNumberVerified",
+                    type: "Boolean",
+                    optional: true
+                },
+                role: {
+                    name: "role",
+                    type: "String",
+                    optional: true
+                },
+                banned: {
+                    name: "banned",
+                    type: "Boolean",
+                    optional: true,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
+                },
+                banReason: {
+                    name: "banReason",
+                    type: "String",
+                    optional: true
+                },
+                banExpires: {
+                    name: "banExpires",
+                    type: "DateTime",
+                    optional: true
+                },
                 twoFactorEnabled: {
                     name: "twoFactorEnabled",
                     type: "Boolean",
@@ -97,27 +131,11 @@ export class SchemaType implements SchemaDef {
                     array: true,
                     relation: { opposite: "author" }
                 },
-                role: {
-                    name: "role",
-                    type: "String",
-                    optional: true
-                },
-                banned: {
-                    name: "banned",
-                    type: "Boolean",
-                    optional: true,
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
-                },
-                banReason: {
-                    name: "banReason",
-                    type: "String",
-                    optional: true
-                },
-                banExpires: {
-                    name: "banExpires",
-                    type: "DateTime",
-                    optional: true
+                notifications: {
+                    name: "notifications",
+                    type: "Notification",
+                    array: true,
+                    relation: { opposite: "user" }
                 }
             },
             attributes: [
@@ -127,7 +145,8 @@ export class SchemaType implements SchemaDef {
             idFields: ["id"],
             uniqueFields: {
                 id: { type: "String" },
-                email: { type: "String" }
+                email: { type: "String" },
+                phoneNumber: { type: "String" }
             }
         },
         Session: {
@@ -184,13 +203,13 @@ export class SchemaType implements SchemaDef {
                     attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "sessions", fields: ["userId"], references: ["id"], onDelete: "Cascade" }
                 },
-                activeOrganizationId: {
-                    name: "activeOrganizationId",
+                impersonatedBy: {
+                    name: "impersonatedBy",
                     type: "String",
                     optional: true
                 },
-                impersonatedBy: {
-                    name: "impersonatedBy",
+                activeOrganizationId: {
+                    name: "activeOrganizationId",
                     type: "String",
                     optional: true
                 }
@@ -721,6 +740,88 @@ export class SchemaType implements SchemaDef {
             uniqueFields: {
                 id: { type: "String" }
             }
+        },
+        Notification: {
+            name: "Notification",
+            fields: {
+                id: {
+                    name: "id",
+                    type: "String",
+                    id: true,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("ulid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("ulid") as FieldDefault
+                },
+                user: {
+                    name: "user",
+                    type: "User",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "notifications", fields: ["userId"], references: ["id"], onDelete: "Cascade" }
+                },
+                userId: {
+                    name: "userId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "user"
+                    ] as readonly string[]
+                },
+                title: {
+                    name: "title",
+                    type: "String",
+                    optional: true
+                },
+                body: {
+                    name: "body",
+                    type: "String"
+                },
+                channels: {
+                    name: "channels",
+                    type: "NotificationChannel",
+                    array: true
+                },
+                readAt: {
+                    name: "readAt",
+                    type: "DateTime",
+                    optional: true
+                },
+                sentAt: {
+                    name: "sentAt",
+                    type: "DateTime",
+                    optional: true,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
+                },
+                url: {
+                    name: "url",
+                    type: "String",
+                    optional: true
+                },
+                color: {
+                    name: "color",
+                    type: "String",
+                    optional: true
+                },
+                icon: {
+                    name: "icon",
+                    type: "String",
+                    optional: true
+                },
+                createdAt: {
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
+                }
+            },
+            attributes: [
+                { name: "@@allow", args: [{ name: "operation", value: ExpressionUtils.literal("read") }, { name: "condition", value: ExpressionUtils.binary(ExpressionUtils.binary(ExpressionUtils.call("auth"), "!=", ExpressionUtils._null()), "&&", ExpressionUtils.binary(ExpressionUtils.member(ExpressionUtils.call("auth"), ["id"]), "==", ExpressionUtils.field("userId"))) }] },
+                { name: "@@allow", args: [{ name: "operation", value: ExpressionUtils.literal("update") }, { name: "condition", value: ExpressionUtils.binary(ExpressionUtils.binary(ExpressionUtils.call("auth"), "!=", ExpressionUtils._null()), "&&", ExpressionUtils.binary(ExpressionUtils.member(ExpressionUtils.call("auth"), ["id"]), "==", ExpressionUtils.field("userId"))) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId"), ExpressionUtils.field("createdAt")]) }] },
+                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("notifications") }] }
+            ] as readonly AttributeApplication[],
+            idFields: ["id"],
+            uniqueFields: {
+                id: { type: "String" }
+            }
         }
     } as const;
     enums = {
@@ -730,6 +831,14 @@ export class SchemaType implements SchemaDef {
                 DRAFT: "DRAFT",
                 PUBLISHED: "PUBLISHED",
                 ARCHIVED: "ARCHIVED"
+            }
+        },
+        NotificationChannel: {
+            name: "NotificationChannel",
+            values: {
+                WEB: "WEB",
+                EMAIL: "EMAIL",
+                WHATSAPP: "WHATSAPP"
             }
         }
     } as const;

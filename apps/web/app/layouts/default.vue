@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { NavigationMenuItem, CommandPaletteGroup, CommandPaletteItem } from '@nuxt/ui'
-import { provideQuerySettingsContext } from 'zenstack-pinia-colada'
+import { LazyUserNotificationOverlay } from '#components'
 import { isReasoningUIPart, isTextUIPart, isToolUIPart, getToolName, lastAssistantMessageIsCompleteWithApprovalResponses, DefaultChatTransport } from 'ai'
 import { useChat } from '@ai-sdk/vue'
 import { isPartStreaming, isToolStreaming } from '@nuxt/ui/utils/ai'
@@ -11,10 +11,8 @@ const { user } = useUserSession()
 const client = useAuthClient()
 const color = useColorMode()
 
-provideQuerySettingsContext({
-  endpoint: `${runtimeConfig.public.apiUrl}/model`,
-  logging: true
-})
+const overlay = useOverlay()
+const notificationOverlay = overlay.create(LazyUserNotificationOverlay)
 
 const activeOrganization = client?.useActiveOrganization()
 
@@ -57,7 +55,8 @@ const globalLinks = computed<NavigationMenuItem[][]>(() => [[{
   to: '/users'
 }], [{
   label: 'Notifications',
-  icon: 'i-lucide-bell'
+  icon: 'i-lucide-bell',
+  onSelect: () => notificationOverlay.open()
 }, {
   label: 'Toggle theme',
   icon: color.preference === 'dark' ? 'i-lucide-sun' : 'i-lucide-moon',
@@ -109,9 +108,9 @@ defineShortcuts(extractShortcuts(globalLinks.value))
         id="nav-main"
         :ui="{ body: 'px-2.5 sm:px-4 py-2.5!' }"
         class="bg-elevated/50"
-        :max-size="3"
-        :min-size="3"
-        :default-size="3"
+        :max-size="4"
+        :min-size="4"
+        :default-size="4"
       >
         <template #header>
           <UDashboardToolbar

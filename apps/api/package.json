@@ -13,9 +13,11 @@
     "@repo/db": "workspace:*",
     "@repo/logger": "workspace:*",
     "@repo/storage": "workspace:*",
+    "@repo/tasks": "workspace:*",
     "@zenstackhq/server": "^3.9.3",
     "ai": "^7.0.95",
     "elysia": "^1.4.30",
+    "pg-boss": "^12.30.0",
     "zod": "^4.5.4"
   },
   "devDependencies": {

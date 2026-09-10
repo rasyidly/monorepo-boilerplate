@@ -16,6 +16,12 @@ export const PostStatus: EnumOption<EnumValues<'PostStatus'>>[] = [
   { value: 'ARCHIVED', label: 'Archived', color: 'error' }
 ]
 
+export const NotificationChannel: EnumOption<EnumValues<'NotificationChannel'>>[] = [
+  { value: 'WEB', label: 'Web', icon: 'i-lucide-globe', color: 'info' },
+  { value: 'EMAIL', label: 'Email', icon: 'i-lucide-mail', color: 'success' },
+  { value: 'WHATSAPP', label: 'WhatsApp', icon: 'i-lucide-message-circle', color: 'success' }
+]
+
 export const MemberRole: EnumOption<'owner' | 'admin' | 'member'>[] = [
   { value: 'owner', label: 'Owner', color: 'warning' },
   { value: 'admin', label: 'Admin', color: 'primary' },

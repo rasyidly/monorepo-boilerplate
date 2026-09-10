@@ -1,0 +1,25 @@
+{
+  "name": "@repo/tasks",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/tasks/index.ts"
+  },
+  "scripts": {
+    "dev": "bun run --env-file ../../.env --watch src/index.ts",
+    "start": "bun run --env-file ../../.env src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2"
+  },
+  "peerDependencies": {
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@repo/db": "workspace:*",
+    "@repo/storage": "workspace:*",
+    "pg-boss": "^12.30.0",
+    "zod": "^4.5.4"
+  }
+}
