@@ -30,11 +30,12 @@ export const InvitationStatus: EnumOption<'pending' | 'accepted' | 'rejected' | 
   { value: 'expired', label: 'Expired', color: 'neutral' }
 ]
 
-export const LogModule: EnumOption<'access' | 'auth' | 'db' | 'email'>[] = [
+export const LogModule: EnumOption<'access' | 'auth' | 'db' | 'email' | 'ai'>[] = [
   { value: 'access', label: 'Access', icon: 'i-lucide-door-open', color: 'warning' },
   { value: 'auth', label: 'Auth', icon: 'i-lucide-shield', color: 'primary' },
   { value: 'db', label: 'Database', icon: 'i-lucide-database', color: 'info' },
-  { value: 'email', label: 'Email', icon: 'i-lucide-mail', color: 'success' }
+  { value: 'email', label: 'Email', icon: 'i-lucide-mail', color: 'success' },
+  { value: 'ai', label: 'AI', icon: 'i-lucide-sparkles', color: 'primary' }
 ]
 
 export const LogLevel: EnumOption<number>[] = [

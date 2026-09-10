@@ -52,7 +52,6 @@ const columns: TableColumn<LogEntry>[] = [{
     icon: 'i-lucide-clock',
     noSort: true
   }),
-  meta: { class: { td: 'text-center' } },
   cell: ({ row }) => {
     const time = row.getValue('time') as number | undefined
     const date = typeof time === 'number' ? new Date(time) : null
@@ -69,7 +68,6 @@ const columns: TableColumn<LogEntry>[] = [{
     icon: 'i-lucide-signal',
     noSort: true
   }),
-  meta: { class: { td: 'text-center' } },
   cell: ({ row }) => h(UBadge, {
     ...LogLevel.find(level => level.value === row.original.level),
     variant: 'subtle',

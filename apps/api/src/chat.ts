@@ -3,6 +3,7 @@ import { streamText, convertToModelMessages, tool, zodSchema, isStepCount, creat
 import { gateway } from '@ai-sdk/gateway'
 import { z } from 'zod'
 import { pool, schema } from '@repo/db'
+import { logger } from '@repo/logger'
 
 function describeSchema(): string {
   const modelNames = new Set(Object.keys(schema.models))
@@ -35,6 +36,17 @@ function assertReadOnly(sql: string): void {
   }
 }
 
+function userQuestion(messages: any[]): string | undefined {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i]?.role !== 'user') continue
+    const text = (messages[i].parts ?? [])
+      .filter((part: any) => part.type === 'text')
+      .map((part: any) => part.text)
+      .join(' ')
+    if (text) return text
+  }
+}
+
 const SYSTEM_PROMPT = [
   'You are a data assistant for this application (PostgreSQL via Docker).',
   'Database schema:',
@@ -52,6 +64,11 @@ const SYSTEM_PROMPT = [
 export const chat = new Elysia({ prefix: '/chat' }).post(
   '/message',
   async ({ body }) => {
+    const start = performance.now()
+    let queryCount = 0
+
+    logger.ai.info({ question: userQuestion(body.messages), messages: body.messages.length }, 'chat request')
+
     const result = streamText({
       model: gateway('xiaomi/mimo-v2.5'),
       system: SYSTEM_PROMPT,
@@ -64,13 +81,35 @@ export const chat = new Elysia({ prefix: '/chat' }).post(
             sql: z.string().describe('SQL query, SELECT only'),
           })),
           execute: async ({ sql }) => {
-            assertReadOnly(sql)
-            const { rows } = await pool.query(sql)
-            return JSON.parse(JSON.stringify(rows.slice(0, 200), (_key, value) =>
-              typeof value === 'bigint' ? value.toString() : value,
-            ))
+            queryCount++
+            const queryStart = performance.now()
+            try {
+              assertReadOnly(sql)
+              const { rows } = await pool.query(sql)
+              const payload = JSON.parse(JSON.stringify(rows.slice(0, 200), (_key, value) =>
+                typeof value === 'bigint' ? value.toString() : value,
+              ))
+              logger.ai.debug({ sql, rows: payload.length, durationMs: Math.round(performance.now() - queryStart) }, 'query executed')
+              return payload
+            } catch (error) {
+              logger.ai.error({ err: error, sql, durationMs: Math.round(performance.now() - queryStart) }, 'query failed')
+              throw error
+            }
           },
         }),
+      },
+      onFinish: ({ usage, steps }) => {
+        logger.ai.info({
+          inputTokens: usage.inputTokens,
+          outputTokens: usage.outputTokens,
+          totalTokens: usage.totalTokens,
+          steps: steps.length,
+          queries: queryCount,
+          durationMs: Math.round(performance.now() - start),
+        }, 'chat completed')
+      },
+      onError: ({ error }) => {
+        logger.ai.error({ err: error, durationMs: Math.round(performance.now() - start) }, 'chat failed')
       },
     })
 
